@@ -1,0 +1,9 @@
+{
+  "name": "stitch-pipeline",
+  "description": "Orchestrates Stitch MCP design-to-code pipeline: generate screens, pull assets, convert to framework components, harden for production.",
+  "version": "1.0.0",
+  "author": {
+    "name": "sachin1245",
+    "url": "https://github.com/sachin1245"
+  }
+}
