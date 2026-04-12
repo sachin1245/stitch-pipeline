@@ -58,9 +58,29 @@ Agent(
   prompt: """
     You are pulling Stitch assets to local files. This is a pure data-transfer task.
 
-    For each screen below, do these two things:
+    For each screen below, do these steps IN ORDER:
+
     1. Call `fetch_screen_code` with the screen's Stitch ID → Write the FULL response to the HTML path using the Write tool
     2. Call `fetch_screen_image` with the screen's Stitch ID → Write the image to the PNG path using the Write tool
+    3. **Extract embedded images** from the HTML you just wrote:
+       - Read the HTML file
+       - Find all <img> tags whose src starts with "https://lh3.googleusercontent.com/aida-public/"
+       - Also find CSS background-image: url(...) values with those same URLs
+       - For each URL found:
+         a. Download it using the Bash tool: `curl -sL "{url}" -o "public/images/stitch/{screen-name}-img-{N}.jpg"`
+            (replace {N} with 1, 2, 3… for each image found)
+         b. Note the data-alt attribute (if present) — this is the image description
+       - Create a JSON image map file at `stitch-assets/images/{screen-name}-image-map.json`:
+         ```json
+         {
+           "https://lh3.googleusercontent.com/...full-url...": {
+             "local": "/images/stitch/{screen-name}-img-1.jpg",
+             "alt": "value from data-alt attribute, or empty string if absent"
+           }
+         }
+         ```
+       - If no embedded image URLs are found, skip this step (do NOT create an empty map file)
+       - Ensure `public/images/stitch/` directory exists before writing (use `mkdir -p`)
 
     Screens to pull:
     - Screen: {screen-name}, Variant: {variant}
@@ -68,10 +88,11 @@ Agent(
       HTML path: stitch-assets/html/{project}-{screen}-{variant}.html
       PNG path: stitch-assets/screenshots/{project}-{screen}-{variant}.png
 
-    After writing each file, report back ONLY:
+    After completing all steps, report back ONLY:
     - Filename
     - File size (line count for HTML, or "image saved" for PNG)
     - Whether HTML is rich (200+ lines) or stub (<50 lines)
+    - Number of embedded images downloaded (e.g., "2 images saved to public/images/stitch/")
 
     Do NOT include the file contents in your response.
   """

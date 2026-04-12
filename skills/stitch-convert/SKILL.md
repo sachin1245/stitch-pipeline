@@ -57,7 +57,13 @@ For each screen to convert:
    - Use as visual reference for layout, spacing, colors, component placement
    - This is always available and always the ground truth for visual design
 
-3. **Cross-reference**: HTML gives structure/classes, PNG gives visual truth. When they conflict, trust the PNG.
+3. **Check for downloaded image assets** — `stitch-assets/images/{screen-name}-image-map.json`
+   - If this file exists, load the URL→local path mapping
+   - During conversion, replace any `lh3.googleusercontent.com/aida-public/` `src` URLs with their `local` path from the map
+   - Convert `data-alt` attributes to proper `alt` attributes using the `alt` field from the map
+   - If no map exists but the HTML contains remote image URLs, use the remote URL as a fallback (better than omitting the image entirely) — note this in your summary as "remote image fallback used"
+
+4. **Cross-reference**: HTML gives structure/classes, PNG gives visual truth. When they conflict, trust the PNG.
 
 ### Step 3: Atomic Decomposition
 
