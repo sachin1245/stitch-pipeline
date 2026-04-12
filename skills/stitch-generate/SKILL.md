@@ -82,17 +82,78 @@ Design rules:
 
 ### Step 4: Generate Screens
 
-**For single screens:**
-Use `generate_screen_from_text` with:
-- `projectId`: from `.stitch-claude/project.md`
-- `prompt`: constructed prompt from Step 3
-- `model`: chosen model (default: `GEMINI_3_FLASH`)
+Always use `generate_screen_from_text` — **never** use `batch_generate_screens`.
 
-**For batch generation (3+ screens):**
-Use `batch_generate_screens` with an array of prompts.
+> **Why not batch?** The `batch_generate_screens` tool has critical limitations:
+> no model selection (stuck on backend default), fewer deviceType options
+> (no AGNOSTIC), and a timeout risk — the backend processes screens
+> sequentially, so 5+ screens at 30-60s each exceeds the 3-minute MCP timeout.
+> Parallel subagents calling the single-screen tool are faster, more reliable,
+> and give full control over model and device type per screen.
+
+**For a single screen (1-2 screens):**
+
+Call `generate_screen_from_text` directly in the main conversation:
+- `projectId`: from `.stitch-claude/project.md` (numeric ID only, no `projects/` prefix)
+- `prompt`: constructed prompt from Step 3
+- `modelId`: chosen model (default: `GEMINI_3_FLASH`)
+- `deviceType`: `DESKTOP` or `MOBILE`
+
+**For multiple screens (3+) — parallel subagent strategy:**
+
+Spawn one Agent per screen (or per desktop+mobile pair) to generate in parallel.
+All agents call `generate_screen_from_text` independently — no batch API needed.
+
+```
+Agent(
+  model: "sonnet",
+  description: "Generate {screen-name} screens",
+  prompt: """
+    You are generating screens in Google Stitch. Call `generate_screen_from_text`
+    for each screen below. Wait for each call to complete before starting the next.
+    Generation takes 30-60 seconds per screen — be patient and DO NOT RETRY on timeout.
+
+    Project ID: {projectId}
+    Model: {modelId}
+
+    Screens to generate:
+    1. Screen: {screen-name} — desktop
+       deviceType: DESKTOP
+       prompt: |
+         {full prompt from Step 3}
+
+    2. Screen: {screen-name} — mobile
+       deviceType: MOBILE
+       prompt: |
+         {full prompt from Step 3}
+
+    After each generation completes, report back:
+    - Screen name and variant
+    - Stitch screen ID from the response
+    - Whether output_components contained any suggestions (quote them)
+
+    If a call fails with a connection error, note the failure — the generation
+    may still succeed server-side. Report the failure so we can check with
+    get_screen or list_screens later.
+  """
+)
+```
+
+**Parallelization guidance:**
+
+| Screens to generate | Strategy |
+|---------------------|----------|
+| 1-2 screens | Direct calls in main conversation |
+| 3-6 screens | 2-3 parallel agents (1-2 screens each) |
+| 7-12 screens | 4-6 parallel agents (2 screens each) |
+| 13+ screens | 6-8 parallel agents (2-3 screens each), wave-based |
+
+For 13+ screens, use **wave-based generation**: launch the first wave of 6-8 agents,
+collect results, then launch the next wave. This avoids overwhelming the Stitch API
+and keeps error recovery manageable.
 
 **For responsive variants:**
-After generating the desktop version, use `generate_responsive_variant` to create the mobile version (or vice versa), passing the original screen ID.
+After generating the desktop version, use `generate_responsive_variant` to create the mobile version (or vice versa), passing the original screen ID. Alternatively, generate both variants explicitly with separate `generate_screen_from_text` calls (gives more control over the mobile prompt).
 
 ### Step 5: Record Results
 
@@ -146,18 +207,26 @@ This ensures Stitch generates screens that align with the project's established 
 
 ---
 
-## Batch vs Sequential
+## Parallel Generation Strategy
 
 | Screens | Strategy |
 |---------|----------|
-| 1-2 | Sequential `generate_screen_from_text` |
-| 3+ | `batch_generate_screens` for parallel generation |
-| Variant pairs | Generate primary, then `generate_responsive_variant` |
+| 1-2 | Direct `generate_screen_from_text` calls in main conversation |
+| 3-6 | 2-3 parallel subagents, each generating 1-2 screens |
+| 7-12 | 4-6 parallel subagents, each generating 2 screens |
+| 13+ | Wave-based: 6-8 parallel subagents per wave, collect results between waves |
+| Variant pairs | Generate desktop first, then `generate_responsive_variant` for mobile, OR two explicit calls with tailored prompts |
+
+> **Do not use `batch_generate_screens`.** It lacks model selection, has fewer
+> deviceType options, and times out on 5+ screens. Parallel subagents using
+> `generate_screen_from_text` are faster and more reliable.
 
 ---
 
 ## Error Handling
 
-- **MCP timeout**: Stitch generation can take 30-60s. If timeout, retry once.
-- **Generation failure**: Note in screens.md with status `planned` and a comment about the failure.
+- **MCP timeout / connection error**: Generation takes 30-60s per screen. If the call fails with a connection error, **do not retry immediately** — the generation may still succeed server-side. Wait 30s, then call `list_screens` or `get_screen` to check if the screen was created.
+- **Generation failure**: Note in screens.md with status `planned` and a comment about the failure. The user can retry with `/stitch-generate` targeting the failed screen.
+- **Subagent failure**: If a parallel subagent fails, its screens remain at `planned` status. Other agents' results are still valid. Report which screens failed so they can be retried.
 - **Design system not found**: Run `stitch-init` to create one first.
+- **Rate limiting**: If generating 13+ screens, use wave-based strategy (6-8 parallel agents per wave) to avoid API throttling. Wait for each wave to complete before starting the next.
