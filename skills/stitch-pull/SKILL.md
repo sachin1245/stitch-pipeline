@@ -95,6 +95,11 @@ Agent(
     - Number of embedded images downloaded (e.g., "2 images saved to public/images/stitch/")
 
     Do NOT include the file contents in your response.
+
+    If ANY step fails for a screen (fetch fails, write fails, image download fails):
+    - Report the failure clearly: "FAILED: {screen-name} — {error message}"
+    - Do NOT stop processing other screens in your batch
+    - Continue with the next screen
   """
 )
 ```
@@ -141,6 +146,13 @@ For each successfully pulled screen:
 
 2. If component extraction was run, **update `components.md`** with any new entries.
 
+For each **failed** screen:
+1. **Update `screens.md`**:
+   - Set `Status` to `failed_pull`
+   - Set `Error` to a concise error message (e.g., "MCP timeout", "fetch returned empty")
+   - Increment `Retries` if this is a retry attempt
+   - Update the `Updated` column to today's date
+
 ### Step 7: Summary
 
 Present results:
@@ -181,7 +193,8 @@ Both are valid — the `stitch-convert` skill handles both types. Always pull bo
 
 ## Error Handling
 
-- **Screen not found in Stitch**: The screen may have been deleted. Update status to `skipped` with a note.
-- **Fetch timeout**: Retry once. If still failing, note in screens.md and move on.
-- **Image too large**: PNG files can be several MB. This is normal for high-fidelity screens.
-- **HTML is empty**: Write an empty file and note it. The PNG will be the primary reference.
+- **Screen not found in Stitch**: Set status to `failed_pull` with error "Screen not found — may have been deleted". Do not set to `skipped` automatically.
+- **Fetch timeout**: Set status to `failed_pull` with error "MCP timeout after 180s". The orchestrator will offer retry on next run.
+- **Image too large**: PNG files can be several MB. This is normal — not a failure.
+- **HTML is empty**: Write an empty file, set status to `assets_pulled` (empty HTML is valid — PNG is primary reference). Note "stub HTML" in summary.
+- **Image extraction fails**: Set HTML/PNG status to `assets_pulled` (core assets succeeded), note image extraction failure in summary. This is non-blocking.

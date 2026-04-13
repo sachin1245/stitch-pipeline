@@ -23,9 +23,28 @@ Stores project metadata. Single key-value table.
 | Design System | Kinetic Precision |
 | Design System ID | (stitch design system ID) |
 | Vision | Crypto analytics dashboard with premium dark UI |
+| Components Dir | src/components |
+| Layouts Dir | src/layouts |
+| Pages Dir | src/pages |
+| Hooks Dir | src/hooks |
+| Styles Entry | src/index.css |
+| Route File | src/App.tsx |
 | Created | 2026-04-03 |
 | Updated | 2026-04-03 |
 ```
+
+### Project Directory Keys
+
+These are auto-detected during `stitch-init` based on the tech stack. Skills should read these values from `project.md` instead of hardcoding paths.
+
+| Key | react-vite | react-nextjs | vue-vite | vue-nuxt | svelte-kit |
+|-----|-----------|-------------|---------|---------|-----------|
+| Components Dir | `src/components` | `components` | `src/components` | `components` | `src/lib/components` |
+| Layouts Dir | `src/layouts` | `app` (via layout.tsx) | `src/layouts` | `layouts` | `src/lib/layouts` |
+| Pages Dir | `src/pages` | `app` (via page.tsx) | `src/pages` | `pages` | `src/routes` |
+| Hooks Dir | `src/hooks` | `hooks` | `src/composables` | `composables` | `src/lib/stores` |
+| Styles Entry | `src/index.css` | `app/globals.css` | `src/style.css` | `assets/css/main.css` | `src/app.css` |
+| Route File | `src/App.tsx` | (file-based) | `src/router/index.ts` | (file-based) | (file-based) |
 
 ### Tech Stack Values
 
@@ -47,12 +66,21 @@ Tracks every screen through its lifecycle. One row per screen+variant combinatio
 ```markdown
 # Screen Inventory
 
-| Screen | Variant | Stitch ID | Status | HTML Asset | PNG Asset | Component | Updated |
-|--------|---------|-----------|--------|------------|-----------|-----------|---------|
-| home | desktop | f7b073... | hardened | html/kinetic-home-desktop.html | screenshots/kinetic-home-desktop.png | layouts/DesktopHome.tsx | 2026-04-03 |
+| Screen | Variant | Stitch ID | Status | HTML Asset | PNG Asset | Component | Error | Retries | Updated |
+|--------|---------|-----------|--------|------------|-----------|-----------|-------|---------|---------|
+| home | desktop | f7b073... | hardened | html/kinetic-home-desktop.html | screenshots/kinetic-home-desktop.png | layouts/DesktopHome.tsx | - | 0 | 2026-04-03 |
+| swap | desktop | 7750b4... | failed_pull | - | - | - | MCP timeout after 180s | 1 | 2026-04-03 |
 
 ## Status Lifecycle
 planned → generated_in_stitch → assets_pulled → component_converted → hardened
+
+## Failure Statuses
+- **failed_generate**: Generation failed in Stitch (MCP timeout, API error)
+- **failed_pull**: Asset fetch failed (network error, screen deleted)
+- **failed_convert**: Component conversion failed (missing imports, compile error)
+- **failed_harden**: Accessibility hardening failed (file not found, JSX syntax error)
+
+On retry, a `failed_*` status resets to the stage's input status (e.g., `failed_pull` → `generated_in_stitch`).
 
 ## Special Statuses
 - **experimental**: Exists in Stitch canvas but not intended for this project build
@@ -70,6 +98,8 @@ planned → generated_in_stitch → assets_pulled → component_converted → ha
 | HTML Asset | path or `-` | Relative path from project root to HTML file, or `-` if not pulled |
 | PNG Asset | path or `-` | Relative path from project root to PNG file, or `-` if not pulled |
 | Component | path or `-` | Relative path from `src/` to the component file, or `-` if not created |
+| Error | string or `-` | Human-readable error message on failure, `-` on success |
+| Retries | integer | Number of retry attempts for current stage (starts at 0) |
 | Updated | date | ISO date (YYYY-MM-DD) of last status change |
 
 ### Status Enum
@@ -81,6 +111,10 @@ planned → generated_in_stitch → assets_pulled → component_converted → ha
 | `assets_pulled` | HTML and/or PNG fetched to local `stitch-assets/` |
 | `component_converted` | React/Vue/Svelte component created from assets |
 | `hardened` | Component passed accessibility and interactivity audit |
+| `failed_generate` | Generation failed — check Error column for details |
+| `failed_pull` | Asset fetch failed — check Error column for details |
+| `failed_convert` | Conversion failed — check Error column for details |
+| `failed_harden` | Hardening failed — check Error column for details |
 | `experimental` | Exists in Stitch but not targeted for build |
 | `skipped` | Intentionally excluded from pipeline |
 

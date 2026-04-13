@@ -227,6 +227,7 @@ This ensures Stitch generates screens that align with the project's established 
 
 - **MCP timeout / connection error**: Generation takes 30-60s per screen. If the call fails with a connection error, **do not retry immediately** — the generation may still succeed server-side. Wait 30s, then call `list_screens` or `get_screen` to check if the screen was created.
 - **Generation failure**: Note in screens.md with status `planned` and a comment about the failure. The user can retry with `/stitch-generate` targeting the failed screen.
-- **Subagent failure**: If a parallel subagent fails, its screens remain at `planned` status. Other agents' results are still valid. Report which screens failed so they can be retried.
+- **Subagent failure**: If a parallel subagent fails, set affected screens to `failed_generate` with the error message. Other agents' results are still valid. Report which screens failed so they can be retried.
+- **Partial success**: If a subagent generates 1 of 2 screens successfully, advance the successful screen to `generated_in_stitch` and set the failed screen to `failed_generate`. Never leave both at `planned` when one succeeded.
 - **Design system not found**: Run `stitch-init` to create one first.
 - **Rate limiting**: If generating 13+ screens, use wave-based strategy (6-8 parallel agents per wave) to avoid API throttling. Wait for each wave to complete before starting the next.

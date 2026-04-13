@@ -173,3 +173,34 @@ These components appear in almost every screen. Harden them once:
 | `Icon` | Ensure `aria-hidden="true"` when decorative (most cases) |
 
 After hardening shared components once, note it in `hardening-log.md` so subsequent screen audits skip them.
+
+---
+
+## Error Handling
+
+- **Component file not found**: If a component listed in screens.md doesn't exist on disk, set status to `failed_harden` with error "Component file not found: {path}". This likely means conversion was incomplete.
+- **Hardening causes compilation issues**: If adding ARIA attributes breaks existing code (e.g., JSX syntax error from misplaced attribute), revert the change and note it. Set status to `failed_harden` with the specific issue.
+- **Partial hardening**: If Pass 1 and 2 complete but Pass 3 finds issues that can't be auto-fixed, set status to `component_converted` (not `hardened`) and log the unfixed issues in hardening-log.md for manual review. This is a soft failure — the screen is usable but not fully hardened.
+
+---
+
+## Optional: Automated Verification
+
+The 3-pass checklist catches widget patterns (tabs, toggles, radio groups) that automated tools miss. However, automated linting can supplement the checklist by catching issues in code the auditor might overlook.
+
+**If the project has ESLint configured**, suggest:
+
+1. Install the accessibility plugin: `npm install -D eslint-plugin-jsx-a11y`
+2. Add to ESLint config: `plugins: ['jsx-a11y']` with `extends: ['plugin:jsx-a11y/recommended']`
+3. Run: `npx eslint src/components/ src/layouts/ src/pages/`
+
+**For Vue projects**, use `eslint-plugin-vuejs-accessibility` instead.
+
+**Important**: This is supplementary, not a replacement for the 3-pass checklist. ESLint catches missing `alt` attributes and basic ARIA issues, but cannot detect:
+- Missing `sr-only` text for visual indicators
+- Incorrect `aria-current` on navigation
+- Widget patterns (tablist/tab/tabpanel, role="switch")
+- Touch target sizing
+- Design-system-specific focus ring styling
+
+Do NOT make automated linting mandatory or block the pipeline on lint results.

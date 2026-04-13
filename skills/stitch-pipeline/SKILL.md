@@ -32,6 +32,10 @@ Determine the current project state by checking what exists:
 | `.stitch-claude/` exists, screens at `assets_pulled` | Start from `stitch-convert` |
 | `.stitch-claude/` exists, screens at `component_converted` | Start from `stitch-harden` |
 | All screens `hardened` | Pipeline complete |
+| `.stitch-claude/` exists, screens at `failed_generate` | Offer retry for failed screens, then continue from `stitch-generate` |
+| `.stitch-claude/` exists, screens at `failed_pull` | Offer retry for failed screens, then continue from `stitch-pull` |
+| `.stitch-claude/` exists, screens at `failed_convert` | Offer retry for failed screens, then continue from `stitch-convert` |
+| `.stitch-claude/` exists, screens at `failed_harden` | Offer retry for failed screens, then continue from `stitch-harden` |
 | Mixed statuses | Process earliest incomplete screens first |
 
 ---
@@ -140,12 +144,42 @@ Each skill is independently invocable. The orchestrator is optional — users ca
 
 ## Error Recovery
 
-If a stage fails:
+### When a stage fails
 
-1. **Note the failure** in `.stitch-claude/screens.md` (keep status at previous stage)
-2. **Inform the user** what failed and why
-3. **Suggest recovery**: retry the failed stage, skip the problematic screen, or investigate
-4. **Don't advance status** — a screen only moves forward when its stage completes successfully
+1. **Set the screen's status** to `failed_{stage}` (e.g., `failed_pull`, `failed_convert`)
+2. **Record the error** in the `Error` column with a human-readable message
+3. **Increment `Retries`** column (starts at 0)
+4. **Do NOT advance** other screens' statuses — only the failed screen is affected
+5. **Continue processing** remaining screens in the batch (one failure doesn't block others)
+
+### On pipeline resume (startup with failed screens)
+
+When the orchestrator detects `failed_*` statuses in screens.md:
+
+1. **Group failed screens by stage** (e.g., 2 failed at pull, 1 failed at convert)
+2. **Present to user:**
+   ```
+   Found failed screens:
+   - 2 screens failed at pull: swap-desktop (MCP timeout), trade-mobile (MCP timeout)
+   - 1 screen failed at convert: settings-desktop (missing SideNav import)
+
+   Options:
+   [r] Retry all failed screens
+   [s] Skip failed screens (mark as skipped)
+   [c] Choose per screen
+   [i] Ignore and continue with other screens
+   ```
+3. **On retry**: Reset status to the stage's input status (e.g., `failed_pull` → `generated_in_stitch`), increment `Retries`, clear `Error`, attempt the stage again
+4. **On skip**: Set status to `skipped`, preserve error in a note
+5. **Max retries**: After 3 retries for the same screen at the same stage, recommend skipping
+
+### Partial stage completion
+
+When a stage processes multiple screens and some succeed while others fail:
+- Succeeded screens advance normally
+- Failed screens get `failed_{stage}` status
+- The orchestrator reports: "5 of 7 screens pulled successfully. 2 failed (see /stitch-status)."
+- The next stage processes only the successfully advanced screens
 
 ---
 

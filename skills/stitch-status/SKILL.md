@@ -75,6 +75,24 @@ Format the output as a structured dashboard:
 | swap | generated | generated |
 | governance | planned | planned |
 
+### Failed Screens ({count})
+
+If any screens have `failed_*` status, show this section:
+
+| Screen | Variant | Failed At | Error | Retries | Suggestion |
+|--------|---------|-----------|-------|---------|------------|
+| swap | desktop | pull | MCP timeout after 180s | 1 | Retry — likely transient |
+| settings | desktop | convert | Missing SideNav import | 0 | Check src/components/SideNav.tsx exists |
+
+Recovery suggestions by error type:
+| Error Pattern | Suggestion |
+|--------------|------------|
+| MCP timeout | "Retry — likely transient network issue" |
+| connection error | "Check Stitch MCP is running, retry" |
+| compile error | "Check import paths and missing dependencies" |
+| missing import | "Verify the referenced component file exists" |
+| generation failed | "Try a simpler prompt, or switch model to GEMINI_3_1_PRO" |
+
 ### Component Library
 | Level | Count | Components |
 |-------|-------|------------|
@@ -108,6 +126,7 @@ Based on the current state, suggest the best next step:
 | Screens at `component_converted` | "Run /stitch-harden to add a11y and interactive states to {N} converted screens" |
 | All screens `hardened` | "Pipeline complete! All {N} screens are hardened and production-ready." |
 | Mixed states | "Next priority: {earliest incomplete stage} for {screen names}" |
+| Screens at `failed_*` | "Run /stitch-pipeline to retry {N} failed screens, or /stitch-status for details" |
 
 ---
 

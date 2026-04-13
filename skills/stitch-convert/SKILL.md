@@ -210,6 +210,21 @@ After converting each screen:
    - Add the page to the Pages section
    - Include `Used By` cross-references
 
+### Step 6b: Post-Conversion Validation
+
+After converting each screen, verify the output before advancing status:
+
+1. **Check files exist**: Verify all created component files (atoms, molecules, organisms, layout, page) exist on disk
+2. **Check import paths**: Read the layout file and verify each import references a real file
+3. **Check route registration**: If a route was added to the router file, verify the import path is correct
+
+If validation fails:
+- Set the screen's status to `failed_convert`
+- Record the specific error in the `Error` column (e.g., "Layout imports missing MarketWatch component")
+- Increment `Retries` if this is a retry
+- Do NOT advance to `component_converted`
+- Report the failure in the summary so the user knows what to fix
+
 ### Step 7: Summary
 
 Present results:
@@ -268,3 +283,12 @@ When converting multiple screens:
 - `+page.svelte` file convention
 - Svelte stores for reactive state
 - File-based routing
+
+---
+
+## Error Handling
+
+- **Component file creation fails**: Set status to `failed_convert`, record error. Don't leave partial components — if the layout was created but organisms weren't, note which files exist.
+- **Import path resolution fails**: Set status to `failed_convert` with the specific import that couldn't be resolved.
+- **Design token mismatch**: If the HTML uses tokens not in design.md, use the closest available token and note the substitution in the summary. This is NOT a failure — just a warning.
+- **HTML/PNG conflict**: When HTML and PNG disagree, trust the PNG. Note the conflict in summary. This is NOT a failure.

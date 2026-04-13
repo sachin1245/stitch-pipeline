@@ -25,6 +25,7 @@ generated=0
 pulled=0
 converted=0
 hardened=0
+failed=0
 skipped=0
 total=0
 
@@ -37,6 +38,7 @@ while IFS='|' read -r _ screen variant stitch_id status rest; do
     assets_pulled) pulled=$((pulled + 1)); total=$((total + 1)) ;;
     component_converted) converted=$((converted + 1)); total=$((total + 1)) ;;
     hardened) hardened=$((hardened + 1)); total=$((total + 1)) ;;
+    failed_*) failed=$((failed + 1)); total=$((total + 1)) ;;
     skipped) skipped=$((skipped + 1)) ;;
   esac
 done < "$SCREENS_FILE"
@@ -64,6 +66,7 @@ parts=()
 [ "$pulled" -gt 0 ] && parts+=("${pulled} pulled")
 [ "$generated" -gt 0 ] && parts+=("${generated} generated")
 [ "$planned" -gt 0 ] && parts+=("${planned} planned")
+[ "$failed" -gt 0 ] && parts+=("${failed} failed")
 
 status_str=$(IFS=', '; echo "${parts[*]}")
 

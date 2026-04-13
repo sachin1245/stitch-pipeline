@@ -214,15 +214,17 @@ The `/stitch-harden` skill runs a 3-pass audit on every component:
 
 ## Supported Frameworks
 
-| Framework | Config Detection | Component Pattern |
-|-----------|-----------------|-------------------|
-| React + Vite | `vite.config.*` + `react` in deps | Function components + `useMediaQuery` hook |
-| React + Next.js | `next.config.*` | App Router, Server Components, `'use client'` |
-| Vue + Vite | `vite.config.*` + `vue` in deps | `<script setup lang="ts">` SFC |
-| Vue + Nuxt 3 | `nuxt.config.*` | File-based routing, `definePageMeta` |
-| SvelteKit | `svelte.config.*` | `+page.svelte`, Svelte stores |
+| Framework | Support | Config Detection | Component Pattern |
+|-----------|---------|-----------------|-------------------|
+| React + Vite + Tailwind | **Full** | `vite.config.*` + `react` in deps | Function components, `useMediaQuery` hook, atomic design, design token integration |
+| React + Next.js | Partial | `next.config.*` | App Router, Server Components, `'use client'` boundaries |
+| Vue + Vite | Partial | `vite.config.*` + `vue` in deps | `<script setup lang="ts">` SFC, Composition API |
+| Vue + Nuxt 3 | Partial | `nuxt.config.*` | File-based routing, `definePageMeta`, auto-imports |
+| SvelteKit | Partial | `svelte.config.*` | `+page.svelte`, Svelte stores, load functions |
 
-The plugin auto-detects your framework and generates components matching its conventions.
+**Full support** means detailed conversion patterns, layout templates, responsive strategies, and design token integration — tested on real projects (Kinetic Precision, 37 screens).
+
+**Partial support** means framework detection and basic component scaffolding work, but conversion patterns are less detailed than React + Vite. Contributions to improve non-React support are welcome.
 
 ---
 
